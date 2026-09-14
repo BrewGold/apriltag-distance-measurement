@@ -1,11 +1,16 @@
 """
 Generador de plantilla de AprilTag para impresión
-Crea un PDF imprimible con tags de diferentes tamaños
+Crea una plantilla Charuco y deja indicaciones para AprilTag
 """
 
 import subprocess
 import sys
 from pathlib import Path
+from system_config import (
+    DEFAULT_CHARUCO_BOARD_SIZE,
+    DEFAULT_CHARUCO_MARKER_SIZE_M,
+    DEFAULT_CHARUCO_SQUARE_SIZE_M,
+)
 
 def generate_apriltag_template():
     """Genera plantilla de AprilTag usando apriltag-utils"""
@@ -33,50 +38,57 @@ def generate_apriltag_template():
     print(f"✓ Plantilla guardada en: {output_path}")
 
 
-def create_checkerboard_pattern():
-    """Crea un patrón de tablero de ajedrez para calibración"""
+def create_charuco_pattern():
+    """Crea un patrón Charuco para calibración"""
     
     try:
         import cv2
-        import numpy as np
     except ImportError:
         print("Instalando dependencias...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python", "numpy"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-contrib-python"])
         import cv2
-        import numpy as np
     
-    # Parámetros
-    squares_x, squares_y = 9, 6
-    square_size = 100  # píxeles
-    
-    # Crear imagen
-    width = squares_x * square_size
-    height = squares_y * square_size
-    img = np.ones((height, width, 3), dtype=np.uint8) * 255
-    
-    # Dibujar patrón
-    for y in range(squares_y):
-        for x in range(squares_x):
-            if (x + y) % 2 == 0:
-                x1 = x * square_size
-                y1 = y * square_size
-                x2 = x1 + square_size
-                y2 = y1 + square_size
-                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 0), -1)
-    
-    # Guardar
-    output_path = Path("checkerboard_9x6.png")
+    board_size = DEFAULT_CHARUCO_BOARD_SIZE
+    square_size_px = 200
+    image_size = (board_size[0] * square_size_px, board_size[1] * square_size_px)
+    board_width_mm = board_size[0] * DEFAULT_CHARUCO_SQUARE_SIZE_M * 1000
+    board_height_mm = board_size[1] * DEFAULT_CHARUCO_SQUARE_SIZE_M * 1000
+
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    if hasattr(cv2.aruco, "CharucoBoard"):
+        board = cv2.aruco.CharucoBoard(
+            board_size,
+            DEFAULT_CHARUCO_SQUARE_SIZE_M,
+            DEFAULT_CHARUCO_MARKER_SIZE_M,
+            dictionary
+        )
+    else:
+        board = cv2.aruco.CharucoBoard_create(
+            board_size[0],
+            board_size[1],
+            DEFAULT_CHARUCO_SQUARE_SIZE_M,
+            DEFAULT_CHARUCO_MARKER_SIZE_M,
+            dictionary
+        )
+
+    if hasattr(board, "generateImage"):
+        img = board.generateImage(image_size)
+    else:
+        img = board.draw(image_size)
+
+    output_path = Path(f"charuco_{board_size[0]}x{board_size[1]}.png")
     cv2.imwrite(str(output_path), img)
-    print(f"✓ Tablero de ajedrez guardado en: {output_path}")
-    print(f"  Tamaño: {width}x{height} píxeles")
-    print(f"  Imprime sin márgenes en papel A4 (100 DPI)")
+    print(f"✓ Tablero Charuco guardado en: {output_path}")
+    print(f"  Tamaño: {image_size[0]}x{image_size[1]} píxeles")
+    print(f"  Tamaño físico objetivo: {board_width_mm:.0f} mm x {board_height_mm:.0f} mm")
+    print("  Imprime sin reescalado y verifica que el tamaño físico final coincida con esas medidas")
 
 
 if __name__ == "__main__":
     print("Generador de Plantillas para AprilTag")
     print("="*40)
     
-    create_checkerboard_pattern()
+    create_charuco_pattern()
     print("\nPara generar AprilTags:")
     print("1. Descarga desde: https://github.com/AprilRobotics/apriltag-imgs")
     print("2. O usa: apt-get install apriltag")

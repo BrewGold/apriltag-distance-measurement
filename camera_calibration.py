@@ -1,37 +1,100 @@
 """
-Calibración de cámara para mediciones precisas (3mm)
-Generador de matriz intrínseca y distorsión
+Calibración de cámara con Charuco para el sistema estéreo.
+Generador de matriz intrínseca y distorsión.
 """
 
 import cv2
 import numpy as np
 import json
-import os
 from pathlib import Path
+from system_config import (
+    DEFAULT_CHARUCO_BOARD_SIZE,
+    DEFAULT_CHARUCO_MARKER_SIZE_M,
+    DEFAULT_CHARUCO_SQUARE_SIZE_M,
+)
 
 class CameraCalibration:
-    """Calibración de cámara using checkerboard pattern"""
+    """Calibración de cámara con tablero Charuco."""
     
-    def __init__(self, checkerboard_size=(9, 6), square_size=0.025):
+    def __init__(
+        self,
+        board_size=DEFAULT_CHARUCO_BOARD_SIZE,
+        square_size=DEFAULT_CHARUCO_SQUARE_SIZE_M,
+        marker_size=DEFAULT_CHARUCO_MARKER_SIZE_M
+    ):
         """
         Args:
-            checkerboard_size: (width, height) número de esquinas internas
-            square_size: tamaño del cuadrado en metros (0.025m = 25mm)
+            board_size: (width, height) número de cuadros del tablero Charuco
+            square_size: tamaño del cuadrado en metros
+            marker_size: tamaño del marcador ArUco en metros
         """
-        self.checkerboard_size = checkerboard_size
+        self.board_size = board_size
         self.square_size = square_size
-        self.objpoints = []
-        self.imgpoints = []
+        self.marker_size = marker_size
+        self.charuco_corners = []
+        self.charuco_ids = []
         self.calibration_data = {}
+        self.dictionary = self._get_aruco_dictionary()
+        self.board = self._create_charuco_board()
         
-    def prepare_object_points(self):
-        """Prepara puntos 3D reales del tablero de ajedrez"""
-        objp = np.zeros((self.checkerboard_size[0] * self.checkerboard_size[1], 3), np.float32)
-        objp[:, :2] = np.mgrid[0:self.checkerboard_size[0], 
-                                0:self.checkerboard_size[1]].T.reshape(-1, 2)
-        objp *= self.square_size
-        return objp
-    
+    def _get_aruco_dictionary(self):
+        """Obtiene el diccionario ArUco usado por Charuco."""
+        return cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+
+    def _create_charuco_board(self):
+        """Crea el tablero Charuco compatible con la versión de OpenCV."""
+        if hasattr(cv2.aruco, "CharucoBoard"):
+            return cv2.aruco.CharucoBoard(
+                self.board_size,
+                self.square_size,
+                self.marker_size,
+                self.dictionary
+            )
+        return cv2.aruco.CharucoBoard_create(
+            self.board_size[0],
+            self.board_size[1],
+            self.square_size,
+            self.marker_size,
+            self.dictionary
+        )
+
+    def _calibrate_charuco(self, image_shape):
+        """Ejecuta la calibración Charuco con compatibilidad entre versiones."""
+        if hasattr(cv2.aruco, "calibrateCameraCharucoExtended"):
+            calibration = cv2.aruco.calibrateCameraCharucoExtended(
+                self.charuco_corners,
+                self.charuco_ids,
+                self.board,
+                image_shape[::-1],
+                None,
+                None
+            )
+            return {
+                'success': True,
+                'reprojection_error': float(calibration[0]),
+                'camera_matrix': calibration[1],
+                'distortion_coefficients': calibration[2],
+                'rvecs': calibration[3],
+                'tvecs': calibration[4],
+            }
+
+        reprojection_error, mtx, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
+            self.charuco_corners,
+            self.charuco_ids,
+            self.board,
+            image_shape[::-1],
+            None,
+            None
+        )
+        return {
+            'success': mtx is not None and dist is not None,
+            'reprojection_error': float(reprojection_error),
+            'camera_matrix': mtx,
+            'distortion_coefficients': dist,
+            'rvecs': rvecs,
+            'tvecs': tvecs,
+        }
+
     def capture_calibration_images(self, camera_id=0, num_images=20):
         """
         Captura imágenes para calibración
@@ -48,7 +111,7 @@ class CameraCalibration:
         calibration_dir.mkdir(exist_ok=True)
         
         captured = 0
-        print(f"Capturando {num_images} imágenes de calibración...")
+        print(f"Capturando {num_images} imágenes de calibración Charuco...")
         print("Presiona 'SPACE' para capturar, 'ESC' para salir")
         
         while captured < num_images:
@@ -58,36 +121,48 @@ class CameraCalibration:
             
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
-            # Detectar esquinas del tablero de ajedrez
-            ret_find, corners = cv2.findChessboardCorners(
-                gray, 
-                self.checkerboard_size, 
-                None
-            )
+            marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray, self.dictionary)
             
             display_frame = frame.copy()
             
-            if ret_find:
-                # Refinar esquinas
-                criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-                refined_corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
-                
-                # Dibujar esquinas
-                cv2.drawChessboardCorners(display_frame, self.checkerboard_size, refined_corners, ret_find)
-                cv2.putText(display_frame, f"Detected! Press SPACE to capture ({captured}/{num_images})", 
-                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            charuco_detected = False
+            charuco_corners = None
+            charuco_ids = None
+
+            if marker_ids is not None and len(marker_ids) > 0:
+                cv2.aruco.drawDetectedMarkers(display_frame, marker_corners, marker_ids)
+                response, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(
+                    marker_corners,
+                    marker_ids,
+                    gray,
+                    self.board
+                )
+
+                if response is not None and response >= 4:
+                    charuco_detected = True
+                    cv2.aruco.drawDetectedCornersCharuco(
+                        display_frame,
+                        charuco_corners,
+                        charuco_ids
+                    )
+                    cv2.putText(display_frame, f"Charuco detectado. SPACE para capturar ({captured}/{num_images})",
+                               (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                else:
+                    cv2.putText(display_frame,
+                               f"Marcadores detectados, faltan esquinas Charuco ({captured}/{num_images})",
+                               (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
             else:
-                cv2.putText(display_frame, f"No checkerboard detected ({captured}/{num_images})", 
-                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(display_frame, f"No se detecta tablero Charuco ({captured}/{num_images})",
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
             
             cv2.imshow("Calibration - Press SPACE to capture, ESC to exit", display_frame)
             
             key = cv2.waitKey(1) & 0xFF
             if key == 27:  # ESC
                 break
-            elif key == 32 and ret_find:  # SPACE
-                self.objpoints.append(self.prepare_object_points())
-                self.imgpoints.append(refined_corners)
+            elif key == 32 and charuco_detected:  # SPACE
+                self.charuco_corners.append(charuco_corners)
+                self.charuco_ids.append(charuco_ids)
                 
                 # Guardar imagen
                 img_path = calibration_dir / f"calibration_{captured:02d}.jpg"
@@ -106,29 +181,32 @@ class CameraCalibration:
         Args:
             image_shape: (height, width) de las imágenes capturadas
         """
-        if len(self.objpoints) == 0:
+        if len(self.charuco_corners) == 0:
             print("Error: No hay imágenes de calibración capturadas")
             return False
         
-        print(f"Calibrando con {len(self.objpoints)} imágenes...")
+        print(f"Calibrando con {len(self.charuco_corners)} imágenes Charuco...")
+
+        try:
+            calibration = self._calibrate_charuco(image_shape)
+        except cv2.error as error:
+            print(f"Error en la calibración Charuco: {error}")
+            return False
         
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
-            self.objpoints,
-            self.imgpoints,
-            image_shape[::-1],  # OpenCV usa (width, height)
-            None,
-            None
-        )
-        
-        if ret:
+        if calibration['success'] and calibration['camera_matrix'] is not None and calibration['distortion_coefficients'] is not None:
             self.calibration_data = {
-                'camera_matrix': mtx.tolist(),
-                'distortion_coefficients': dist.tolist(),
-                'reprojection_error': float(ret),
+                'calibration_schema_version': 2,
+                'pattern': 'charuco',
+                'board_size': self.board_size,
+                'square_size': self.square_size,
+                'marker_size': self.marker_size,
+                'camera_matrix': calibration['camera_matrix'].tolist(),
+                'distortion_coefficients': calibration['distortion_coefficients'].tolist(),
+                'reprojection_error': calibration['reprojection_error'],
                 'image_shape': image_shape,
-                'num_images': len(self.objpoints)
+                'num_images': len(self.charuco_corners)
             }
-            print(f"Calibración exitosa - Error de reproyección: {ret:.6f}")
+            print(f"Calibración exitosa - Error de reproyección: {calibration['reprojection_error']:.6f}")
             return True
         else:
             print("Error en la calibración")
@@ -177,6 +255,8 @@ class CameraCalibration:
         print("\n" + "="*60)
         print("DATOS DE CALIBRACIÓN DE CÁMARA")
         print("="*60)
+        print(f"Patrón: {self.calibration_data.get('pattern', 'charuco')}")
+        print(f"Tablero: {self.calibration_data.get('board_size', self.board_size)}")
         print(f"Número de imágenes: {self.calibration_data['num_images']}")
         print(f"Resolución: {self.calibration_data['image_shape']}")
         print(f"Error de reproyección: {self.calibration_data['reprojection_error']:.6f}")
@@ -190,19 +270,20 @@ class CameraCalibration:
 if __name__ == "__main__":
     import sys
     
-    print("Sistema de Calibración de Cámara para AprilTag")
-    print("Precisión requerida: 3mm\n")
+    print("Sistema de Calibración de Cámara con Charuco")
+    print("Uso previsto: calibración del sistema estéreo\n")
     
     # Crear calibrador
     calibrator = CameraCalibration(
-        checkerboard_size=(9, 6),  # 9x6 esquinas internas
-        square_size=0.025  # Cuadrados de 25mm
+        board_size=DEFAULT_CHARUCO_BOARD_SIZE,
+        square_size=DEFAULT_CHARUCO_SQUARE_SIZE_M,
+        marker_size=DEFAULT_CHARUCO_MARKER_SIZE_M
     )
     
     # Capturar imágenes
     print("\n1. CAPTURA DE IMÁGENES DE CALIBRACIÓN")
     print("-" * 40)
-    input("Prepara el tablero de ajedrez y presiona ENTER para comenzar...")
+    input("Prepara el tablero Charuco y presiona ENTER para comenzar...")
     calibrator.capture_calibration_images(camera_id=0, num_images=20)
     
     # Realizar calibración
