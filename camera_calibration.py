@@ -57,6 +57,28 @@ class CameraCalibration:
             self.marker_size,
             self.dictionary
         )
+
+    def _calibrate_charuco(self, image_shape):
+        """Ejecuta la calibración Charuco con compatibilidad entre versiones."""
+        if hasattr(cv2.aruco, "calibrateCameraCharucoExtended"):
+            calibration = cv2.aruco.calibrateCameraCharucoExtended(
+                self.charuco_corners,
+                self.charuco_ids,
+                self.board,
+                image_shape[::-1],
+                None,
+                None
+            )
+            return calibration[:5]
+
+        return cv2.aruco.calibrateCameraCharuco(
+            self.charuco_corners,
+            self.charuco_ids,
+            self.board,
+            image_shape[::-1],
+            None,
+            None
+        )
     
     def capture_calibration_images(self, camera_id=0, num_images=20):
         """
@@ -146,14 +168,7 @@ class CameraCalibration:
         
         print(f"Calibrando con {len(self.charuco_corners)} imágenes Charuco...")
         
-        ret, mtx, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
-            self.charuco_corners,
-            self.charuco_ids,
-            self.board,
-            image_shape[::-1],  # OpenCV usa (width, height)
-            None,
-            None
-        )
+        ret, mtx, dist, rvecs, tvecs = self._calibrate_charuco(image_shape)
         
         if ret:
             self.calibration_data = {
