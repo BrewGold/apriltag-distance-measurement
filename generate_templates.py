@@ -38,12 +38,10 @@ def create_charuco_pattern():
     
     try:
         import cv2
-        import numpy as np
     except ImportError:
         print("Instalando dependencias...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python", "numpy"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-contrib-python"])
         import cv2
-        import numpy as np
     
     board_size = (9, 6)
     square_size_px = 200

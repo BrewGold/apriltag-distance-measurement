@@ -131,12 +131,11 @@ class AprilTagMeasurement:
         """
         # Modelo empírico para error de medición
         # Error = k * distancia / (tamaño_en_pixeles)
-        # Ajustado para precisión de 3mm
         k = 0.15  # Constante de calibración
         uncertainty_m = k * distance_m / tag_size_px
         uncertainty_mm = uncertainty_m * 1000
         
-        return max(uncertainty_mm, 3.0)  # Mínimo 3mm de incertidumbre
+        return max(uncertainty_mm, 3.0)  # Piso empírico para evitar cero teórico
     
     def draw_measurements(self, frame, measurements):
         """
