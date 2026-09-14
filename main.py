@@ -1,6 +1,6 @@
 """
-Script principal para captura en tiempo real y mediciones con Raspberry Pi
-Menú interactivo para calibración y mediciones
+Utilidades principales de calibración y referencia AprilTag.
+Base para la arquitectura estéreo con dos cámaras USB.
 """
 
 import cv2
@@ -12,7 +12,7 @@ from apriltag_detector import AprilTagMeasurement, MeasurementSession
 import json
 
 class MeasurementSystem:
-    """Sistema completo de medición con AprilTags"""
+    """Utilidades base para calibración y referencia AprilTag."""
     
     def __init__(self, calibration_file="camera_calibration.json", tag_size=0.1):
         self.calibration_file = calibration_file
@@ -43,14 +43,15 @@ class MeasurementSystem:
         print("="*60)
         
         calibrator = CameraCalibration(
-            checkerboard_size=(9, 6),
-            square_size=0.025
+            board_size=(9, 6),
+            square_size=0.03,
+            marker_size=0.022
         )
         
         print("\nPaso 1: Captura de imágenes de calibración")
         print("-" * 40)
-        print("Necesitas un tablero de ajedrez (9x6)")
-        print("Cada cuadrado debe medir 25mm")
+        print("Necesitas un tablero Charuco (9x6)")
+        print("Configuración de referencia del script: cuadrado 30mm, marcador 22mm")
         input("Presiona ENTER para comenzar la captura...")
         
         calibrator.capture_calibration_images(camera_id=0, num_images=20)
@@ -85,7 +86,7 @@ class MeasurementSystem:
             return
         
         print("\n" + "="*60)
-        print("MEDICIÓN EN TIEMPO REAL")
+        print("MEDICIÓN / REFERENCIA EN TIEMPO REAL")
         print("="*60)
         print(f"Tag size: {self.tag_size*100:.1f} cm")
         print("Controles:")
@@ -203,7 +204,7 @@ class MeasurementSystem:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sistema de Medición con AprilTags para Raspberry Pi"
+        description="Herramientas de calibración y referencia AprilTag para el sistema estéreo"
     )
     parser.add_argument(
         "--mode",
@@ -237,8 +238,8 @@ def main():
     args = parser.parse_args()
     
     print("\n" + "="*60)
-    print("SISTEMA DE MEDICIÓN CON APRILTAGS")
-    print("Precisión: 3mm | Rango: 50cm - 2m")
+    print("SISTEMA ESTÉREO DE REFERENCIA CON APRILTAGS")
+    print("2 cámaras USB | calibración Charuco | referencia AprilTag")
     print("="*60 + "\n")
     
     system = MeasurementSystem(

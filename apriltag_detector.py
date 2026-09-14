@@ -1,6 +1,6 @@
 """
-Detector de AprilTags y cálculo de distancias
-Especializado para mediciones de precisión (3mm)
+Detector de AprilTags y cálculo de pose/distancia.
+Bloque de referencia para el sistema estéreo.
 """
 
 import cv2
@@ -12,8 +12,8 @@ from pathlib import Path
 
 class AprilTagMeasurement:
     """
-    Sistema de medición de distancias basado en AprilTags
-    Rango: 50cm - 2m, Precisión: 3mm
+    Estimación de pose basada en AprilTags.
+    Útil para fijar la referencia de campo de la hinca.
     """
     
     def __init__(self, camera_matrix, distortion_coefficients, tag_size=0.1):
@@ -307,5 +307,5 @@ class MeasurementSession:
 
 
 if __name__ == "__main__":
-    print("AprilTag Distance Measurement System")
-    print("Precisión: 3mm | Rango: 50cm - 2m")
+    print("AprilTag Reference Measurement System")
+    print("Uso previsto: referencia de campo para sistema estéreo")

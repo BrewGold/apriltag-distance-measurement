@@ -1,183 +1,147 @@
-# Sistema de Medición de Distancias con AprilTags
+# Sistema de referencia y despeje con visión estéreo
 
-Sistema completo para medir distancias entre una cámara Raspberry Pi y AprilTags con precisión de **3mm** en un rango de **50cm a 2 metros**.
+Repositorio base para la arquitectura de medición de despeje con:
 
-## 📋 Características
+- **2 cámaras USB** montadas en los extremos de un perfil **8080**
+- **visión estéreo** como sensor principal
+- **AprilTag** como referencia de campo de la **hinca**
+- **Charuco** para calibración de cámaras
+- **VL53L1X / ToF** solo como comprobación auxiliar puntual
 
-- ✅ Detección de AprilTags en tiempo real
-- ✅ Cálculo de distancias con precisión de 3mm
-- ✅ Calibración automática de cámara
-- ✅ Análisis de escena (brillo, contraste, posición)
-- ✅ Guardado de mediciones en JSON
-- ✅ Generación de reportes completos
-- ✅ Interfaz CLI intuitiva
-- ✅ Soporte para Raspberry Pi
+> **LiDAR no forma parte de la arquitectura principal.**
 
-## 🛠️ Requisitos
+## Arquitectura objetivo
 
-### Hardware
-- **Cámara**: Raspberry Pi Camera V2 / CSI Camera / USB Webcam
-- **Plataforma**: Raspberry Pi 4B o superior (o cualquier Linux/Windows/Mac)
-- **RAM mínima**: 1GB
-- **Tablero de ajedrez**: 9x6 esquinas con cuadrados de 25mm
+Las dos cámaras se montan en los extremos del perfil 8080 y **apuntan verticalmente hacia el suelo**, paralelas a la referencia de la hinca.
 
-### Software
-- Python 3.7+
-- OpenCV
-- NumPy
-- Pupil AprilTags
+```text
+Vista frontal
 
-## 📦 Instalación
+   cámara USB ↓                           ↓ cámara USB
+┌────────────────────────────────────────────────────────┐
+│                 perfil 8080 horizontal                 │
+└────────────────────────────────────────────────────────┘
+                         ↓
+                    terreno / proyección
+                         ↓
+                      AprilTag en hinca
+```
 
-### 1. Clonar el repositorio
+## Geometría de diseño
+
+La documentación y el dimensionado deben tomar como caso de diseño el escenario más exigente:
+
+- **altura de hinca:** 0.80 m a 1.80 m
+- **caso de diseño mínimo:** **0.80 m**
+- **altura de montaje de cámaras (ejemplo):** **0.90 m** sobre el terreno
+- **vuelo / overhang del módulo:** **~1.20 m**
+- **posición segura / reposo:** **45° mínimo**
+
+## Cobertura requerida
+
+El sistema de cámaras debe cubrir simultáneamente:
+
+1. la **proyección del módulo sobre el terreno**
+2. el **área de terreno necesaria para calcular el despeje mínimo**
+
+La solución principal es geométrica: reconstrucción estéreo del terreno + referencia absoluta del conjunto con AprilTag.
+
+## Papel de cada tecnología
+
+### Sensor principal
+- **Visión estéreo con 2 cámaras USB**
+  - reconstrucción 3D del terreno
+  - cobertura de la zona bajo el módulo
+  - cálculo del despeje mínimo
+
+### Calibración
+- **Charuco**
+  - calibración intrínseca de cada cámara
+  - calibración extrínseca entre cámaras
+  - rectificación estéreo
+
+### Referencia de campo
+- **AprilTag**
+  - referencia espacial de la hinca
+  - alineación del sistema con la geometría real de trabajo
+
+### Sensor opcional
+- **VL53L1X / ToF**
+  - uso opcional
+  - solo como **medida puntual auxiliar** o contraste
+  - **no** sustituye a la visión estéreo
+
+### Fuera de arquitectura principal
+- **LiDAR**
+  - eliminado del diseño principal
+  - no se usa como sensor base del sistema
+
+## Estado actual del repositorio
+
+El repositorio contiene utilidades base para la transición a la solución estéreo:
+
+- `camera_calibration.py`: calibración de cámara con **Charuco**
+- `apriltag_detector.py`: detección y pose de **AprilTag**
+- `main.py`: utilidades CLI de calibración y captura de referencia
+- `generate_templates.py`: generación de plantillas **Charuco** y apoyo para AprilTag
+
+La integración completa de reconstrucción estéreo y cálculo de despeje se apoya en estos bloques.
+
+## Instalación
 
 ```bash
 git clone https://github.com/BrewGold/apriltag-distance-measurement.git
 cd apriltag-distance-measurement
-```
-
-### 2. Instalar dependencias
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 3. Verificar instalación
+## Uso rápido
+
+### 1. Generar patrón Charuco
 
 ```bash
-python main.py --mode info
+python generate_templates.py
 ```
 
-## 🚀 Uso Rápido
-
-### Paso 1: Calibración de Cámara (PRIMERA VEZ)
-
-La calibración es **crítica** para obtener precisión de 3mm. Necesitas un tablero de ajedrez impreso (9x6 esquinas, cuadrados de 25mm).
+### 2. Calibrar una cámara
 
 ```bash
 python main.py --mode calibrate
 ```
 
-**Instrucciones:**
-1. Imprime el tablero de ajedrez
-2. Pega sobre una superficie plana rígida
-3. Ejecuta el comando
-4. Captura 20 imágenes del tablero en diferentes ángulos
-5. El sistema generará `camera_calibration.json`
-
-### Paso 2: Mediciones en Tiempo Real
+### 3. Verificar detección de AprilTag
 
 ```bash
 python main.py --mode measure
 ```
 
-**Controles:**
-- `ESPACIO`: Guardar frame actual con mediciones
-- `R`: Resetear sesión de medición
-- `ESC`: Salir
-
-### Paso 3: Ver Información de Calibración
+### 4. Ver información de calibración
 
 ```bash
 python main.py --mode info
 ```
 
-## 📊 Archivos de Salida
+## Notas de implementación
 
-### Mediciones (`measurements/`)
-```json
-{
-  "timestamp": "2026-09-07T10:30:45.123456",
-  "frame_number": 150,
-  "measurements": [
-    {
-      "tag_id": 0,
-      "distance_m": 0.75,
-      "distance_cm": 75.23,
-      "distance_mm": 752.3,
-      "angles_deg": [2.1, 1.5, -0.3],
-      "center": [320, 240],
-      "pose_error": 0.002
-    }
-  ]
-}
-```
+- La calibración de producción debe hacerse con **Charuco**.
+- El **AprilTag** se usa como referencia de campo de la hinca.
+- El sistema debe diseñarse con el caso límite de **hinca a 0.80 m**.
+- La disposición mecánica debe asegurar que ambas cámaras miren **directamente hacia abajo**.
+- Si se mantiene un **VL53L1X**, su papel es únicamente de verificación puntual.
 
-## 🔬 Parámetros de Precisión
+## Estructura del proyecto
 
-| Parámetro | Valor |
-|-----------|-------|
-| Precisión requerida | ±3mm |
-| Rango de medición | 50cm - 2m |
-| Resolución cámara | 640x480 |
-| FPS | 30 |
-
-## 🎯 Opciones Avanzadas
-
-### Cambiar tamaño del AprilTag
-
-```bash
-python main.py --mode measure --tag-size 0.15
-```
-
-### Usar cámara alternativa
-
-```bash
-python main.py --mode measure --camera 1
-```
-
-### Guardar video
-
-```bash
-python main.py --mode measure --save-video
-```
-
-## 🔧 API de Python
-
-```python
-from apriltag_detector import AprilTagMeasurement
-import json
-import numpy as np
-
-# Cargar calibración
-with open("camera_calibration.json") as f:
-    cal = json.load(f)
-
-camera_matrix = np.array(cal['camera_matrix'])
-distortion = np.array(cal['distortion_coefficients'])
-
-# Crear detector
-detector = AprilTagMeasurement(camera_matrix, distortion, tag_size=0.1)
-
-# Detectar
-tags = detector.detect_tags(frame)
-for tag in tags:
-    measurement = detector.calculate_distance(tag)
-    print(f"Distance: {measurement['distance_cm']:.2f}cm")
-```
-
-## 📖 Estructura del Proyecto
-
-```
+```text
 apriltag-distance-measurement/
-├── main.py                    # Script principal
-├── camera_calibration.py      # Módulo de calibración
-├── apriltag_detector.py       # Módulo de detección
-├── requirements.txt           # Dependencias
-├── camera_calibration.json    # Calibración (generado)
-├── measurements/              # Mediciones (creado)
-└── README.md                  # Documentación
+├── main.py
+├── camera_calibration.py
+├── apriltag_detector.py
+├── generate_templates.py
+├── install.sh
+├── requirements.txt
+└── README.md
 ```
 
-## 📝 Licencia
+## Licencia
 
 MIT License
-
-## 🤝 Contribuciones
-
-Las contribuciones son bienvenidas. Por favor abre un Issue o Pull Request.
-
----
-
-**Versión**: 1.0.0  
-**Última actualización**: 2026-09-07

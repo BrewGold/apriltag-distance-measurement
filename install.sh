@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script de instalación para Raspberry Pi
+# Script de instalación para utilidades base del sistema estéreo
 
 echo "================================================"
-echo "Instalación - Sistema de Medición AprilTag"
+echo "Instalación - Sistema Estéreo con AprilTag"
 echo "================================================"
 echo ""
 
@@ -55,6 +55,7 @@ mkdir -p measurements calibration_images
 echo ""
 echo "Verificando instalación..."
 python3 -c "import cv2; print(f'✓ OpenCV: {cv2.__version__}')"
+python3 -c "import cv2; print(f'✓ ArUco/Charuco: {hasattr(cv2, \"aruco\")}')"
 python3 -c "import numpy; print(f'✓ NumPy: {numpy.__version__}')"
 python3 -c "from pupil_apriltags import AprilTagDetector; print('✓ Pupil AprilTags')"
 
@@ -64,7 +65,7 @@ echo "Instalación completada"
 echo "================================================"
 echo ""
 echo "Próximos pasos:"
-echo "1. Calibra la cámara:"
+echo "1. Calibra la cámara con Charuco:"
 echo "   python3 main.py --mode calibrate"
 echo ""
 echo "2. Ejecuta mediciones:"
