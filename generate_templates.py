@@ -51,6 +51,7 @@ def create_charuco_pattern():
     board_size = DEFAULT_CHARUCO_BOARD_SIZE
     square_size_px = 200
     image_size = (board_size[0] * square_size_px, board_size[1] * square_size_px)
+    print_dpi = square_size_px / ((DEFAULT_CHARUCO_SQUARE_SIZE_M * 1000) / 25.4)
 
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     if hasattr(cv2.aruco, "CharucoBoard"):
@@ -78,7 +79,7 @@ def create_charuco_pattern():
     cv2.imwrite(str(output_path), img)
     print(f"✓ Tablero Charuco guardado en: {output_path}")
     print(f"  Tamaño: {image_size[0]}x{image_size[1]} píxeles")
-    print("  Imprime sin reescalado y conserva las dimensiones físicas definidas")
+    print(f"  Imprime al {print_dpi:.1f} DPI y sin reescalado para conservar las dimensiones físicas")
 
 
 if __name__ == "__main__":

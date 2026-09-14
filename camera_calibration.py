@@ -69,9 +69,16 @@ class CameraCalibration:
                 None,
                 None
             )
-            return calibration[:5]
+            return {
+                'success': True,
+                'reprojection_error': float(calibration[0]),
+                'camera_matrix': calibration[1],
+                'distortion_coefficients': calibration[2],
+                'rvecs': calibration[3],
+                'tvecs': calibration[4],
+            }
 
-        return cv2.aruco.calibrateCameraCharuco(
+        success, mtx, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
             self.charuco_corners,
             self.charuco_ids,
             self.board,
@@ -79,6 +86,46 @@ class CameraCalibration:
             None,
             None
         )
+        return {
+            'success': bool(success),
+            'reprojection_error': self._compute_reprojection_error(mtx, dist, rvecs, tvecs),
+            'camera_matrix': mtx,
+            'distortion_coefficients': dist,
+            'rvecs': rvecs,
+            'tvecs': tvecs,
+        }
+
+    def _compute_reprojection_error(self, camera_matrix, distortion_coefficients, rvecs, tvecs):
+        """Calcula error RMS de reproyección a partir de las detecciones Charuco."""
+        if hasattr(self.board, "getChessboardCorners"):
+            board_corners = self.board.getChessboardCorners()
+        else:
+            board_corners = self.board.chessboardCorners
+
+        squared_error = 0.0
+        total_points = 0
+
+        for charuco_corners, charuco_ids, rvec, tvec in zip(
+            self.charuco_corners,
+            self.charuco_ids,
+            rvecs,
+            tvecs
+        ):
+            object_points = board_corners[charuco_ids.flatten()]
+            projected_points, _ = cv2.projectPoints(
+                object_points,
+                rvec,
+                tvec,
+                camera_matrix,
+                distortion_coefficients
+            )
+            residual = projected_points.reshape(-1, 2) - charuco_corners.reshape(-1, 2)
+            squared_error += float(np.sum(residual ** 2))
+            total_points += len(object_points)
+
+        if total_points == 0:
+            return 0.0
+        return float(np.sqrt(squared_error / total_points))
     
     def capture_calibration_images(self, camera_id=0, num_images=20):
         """
@@ -173,24 +220,24 @@ class CameraCalibration:
         print(f"Calibrando con {len(self.charuco_corners)} imágenes Charuco...")
 
         try:
-            ret, mtx, dist, rvecs, tvecs = self._calibrate_charuco(image_shape)
+            calibration = self._calibrate_charuco(image_shape)
         except cv2.error as error:
             print(f"Error en la calibración Charuco: {error}")
             return False
         
-        if mtx is not None and dist is not None:
+        if calibration['success'] and calibration['camera_matrix'] is not None and calibration['distortion_coefficients'] is not None:
             self.calibration_data = {
                 'pattern': 'charuco',
                 'board_size': self.board_size,
                 'square_size': self.square_size,
                 'marker_size': self.marker_size,
-                'camera_matrix': mtx.tolist(),
-                'distortion_coefficients': dist.tolist(),
-                'reprojection_error': float(ret),
+                'camera_matrix': calibration['camera_matrix'].tolist(),
+                'distortion_coefficients': calibration['distortion_coefficients'].tolist(),
+                'reprojection_error': calibration['reprojection_error'],
                 'image_shape': image_shape,
                 'num_images': len(self.charuco_corners)
             }
-            print(f"Calibración exitosa - Error de reproyección: {ret:.6f}")
+            print(f"Calibración exitosa - Error de reproyección: {calibration['reprojection_error']:.6f}")
             return True
         else:
             print("Error en la calibración")
