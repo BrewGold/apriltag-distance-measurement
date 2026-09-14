@@ -76,7 +76,7 @@ def create_charuco_pattern():
     else:
         img = board.draw(image_size)
 
-    output_path = Path("charuco_9x6.png")
+    output_path = Path(f"charuco_{board_size[0]}x{board_size[1]}.png")
     cv2.imwrite(str(output_path), img)
     print(f"✓ Tablero Charuco guardado en: {output_path}")
     print(f"  Tamaño: {image_size[0]}x{image_size[1]} píxeles")
