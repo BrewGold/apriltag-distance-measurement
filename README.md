@@ -92,7 +92,7 @@ La integración completa de reconstrucción estéreo y cálculo de despeje se ap
 ```bash
 git clone https://github.com/BrewGold/apriltag-distance-measurement.git
 cd apriltag-distance-measurement
-./install.sh
+bash install.sh
 ```
 
 `./install.sh` es la ruta soportada y recomendada para preparar el entorno del repositorio.

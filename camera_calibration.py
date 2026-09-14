@@ -195,6 +195,7 @@ class CameraCalibration:
         
         if calibration['success'] and calibration['camera_matrix'] is not None and calibration['distortion_coefficients'] is not None:
             self.calibration_data = {
+                'calibration_schema_version': 2,
                 'pattern': 'charuco',
                 'board_size': self.board_size,
                 'square_size': self.square_size,
