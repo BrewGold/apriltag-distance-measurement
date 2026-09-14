@@ -132,6 +132,10 @@ class CameraCalibration:
                     )
                     cv2.putText(display_frame, f"Charuco detectado. SPACE para capturar ({captured}/{num_images})",
                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                else:
+                    cv2.putText(display_frame,
+                               f"Marcadores detectados, faltan esquinas Charuco ({captured}/{num_images})",
+                               (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
             else:
                 cv2.putText(display_frame, f"No se detecta tablero Charuco ({captured}/{num_images})",
                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
@@ -170,7 +174,7 @@ class CameraCalibration:
         
         ret, mtx, dist, rvecs, tvecs = self._calibrate_charuco(image_shape)
         
-        if ret:
+        if mtx is not None and dist is not None:
             self.calibration_data = {
                 'pattern': 'charuco',
                 'board_size': self.board_size,
