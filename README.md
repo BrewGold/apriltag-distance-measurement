@@ -95,13 +95,7 @@ cd apriltag-distance-measurement
 ./install.sh
 ```
 
-`./install.sh` es la ruta soportada y recomendada en **Linux/Raspberry Pi**.
-
-Si trabajas en un **equipo de escritorio** con ruedas binarias compatibles para OpenCV contrib, también puedes instalar por `pip`:
-
-```bash
-pip install -r requirements.txt
-```
+`./install.sh` es la ruta soportada y recomendada para preparar el entorno del repositorio.
 
 ## Uso rápido
 

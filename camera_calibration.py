@@ -78,7 +78,7 @@ class CameraCalibration:
                 'tvecs': calibration[4],
             }
 
-        success, mtx, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
+        reprojection_error, mtx, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
             self.charuco_corners,
             self.charuco_ids,
             self.board,
@@ -87,46 +87,14 @@ class CameraCalibration:
             None
         )
         return {
-            'success': bool(success),
-            'reprojection_error': self._compute_reprojection_error(mtx, dist, rvecs, tvecs),
+            'success': mtx is not None and dist is not None,
+            'reprojection_error': float(reprojection_error),
             'camera_matrix': mtx,
             'distortion_coefficients': dist,
             'rvecs': rvecs,
             'tvecs': tvecs,
         }
 
-    def _compute_reprojection_error(self, camera_matrix, distortion_coefficients, rvecs, tvecs):
-        """Calcula error RMS de reproyección a partir de las detecciones Charuco."""
-        if hasattr(self.board, "getChessboardCorners"):
-            board_corners = self.board.getChessboardCorners()
-        else:
-            board_corners = self.board.chessboardCorners
-
-        squared_error = 0.0
-        total_points = 0
-
-        for charuco_corners, charuco_ids, rvec, tvec in zip(
-            self.charuco_corners,
-            self.charuco_ids,
-            rvecs,
-            tvecs
-        ):
-            object_points = board_corners[charuco_ids.flatten()]
-            projected_points, _ = cv2.projectPoints(
-                object_points,
-                rvec,
-                tvec,
-                camera_matrix,
-                distortion_coefficients
-            )
-            residual = projected_points.reshape(-1, 2) - charuco_corners.reshape(-1, 2)
-            squared_error += float(np.sum(residual ** 2))
-            total_points += len(object_points)
-
-        if total_points == 0:
-            return 0.0
-        return float(np.sqrt(squared_error / total_points))
-    
     def capture_calibration_images(self, camera_id=0, num_images=20):
         """
         Captura imágenes para calibración
