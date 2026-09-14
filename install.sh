@@ -57,7 +57,7 @@ echo "Verificando instalación..."
 python3 -c "import cv2; print(f'✓ OpenCV: {cv2.__version__}')"
 python3 -c "import cv2; print(f'✓ ArUco/Charuco: {hasattr(cv2, \"aruco\")}')"
 python3 -c "import numpy; print(f'✓ NumPy: {numpy.__version__}')"
-python3 -c "from pupil_apriltags import AprilTagDetector; print('✓ Pupil AprilTags')"
+python3 -c "from pupil_apriltags import Detector; print('✓ Pupil AprilTags')"
 
 echo ""
 echo "================================================"

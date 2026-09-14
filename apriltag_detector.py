@@ -5,7 +5,7 @@ Bloque de referencia para el sistema estéreo.
 
 import cv2
 import numpy as np
-from pupil_apriltags import AprilTagDetector
+from pupil_apriltags import Detector as AprilTagDetector
 import json
 from datetime import datetime
 from pathlib import Path

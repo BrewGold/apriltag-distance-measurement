@@ -92,6 +92,12 @@ La integración completa de reconstrucción estéreo y cálculo de despeje se ap
 ```bash
 git clone https://github.com/BrewGold/apriltag-distance-measurement.git
 cd apriltag-distance-measurement
+./install.sh
+```
+
+Si no quieres usar el script de instalación:
+
+```bash
 pip install -r requirements.txt
 ```
 

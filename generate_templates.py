@@ -6,6 +6,11 @@ Crea una plantilla Charuco y deja indicaciones para AprilTag
 import subprocess
 import sys
 from pathlib import Path
+from system_config import (
+    DEFAULT_CHARUCO_BOARD_SIZE,
+    DEFAULT_CHARUCO_MARKER_SIZE_M,
+    DEFAULT_CHARUCO_SQUARE_SIZE_M,
+)
 
 def generate_apriltag_template():
     """Genera plantilla de AprilTag usando apriltag-utils"""
@@ -43,15 +48,26 @@ def create_charuco_pattern():
         subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-contrib-python"])
         import cv2
     
-    board_size = (9, 6)
+    board_size = DEFAULT_CHARUCO_BOARD_SIZE
     square_size_px = 200
     image_size = (board_size[0] * square_size_px, board_size[1] * square_size_px)
 
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     if hasattr(cv2.aruco, "CharucoBoard"):
-        board = cv2.aruco.CharucoBoard(board_size, 0.03, 0.022, dictionary)
+        board = cv2.aruco.CharucoBoard(
+            board_size,
+            DEFAULT_CHARUCO_SQUARE_SIZE_M,
+            DEFAULT_CHARUCO_MARKER_SIZE_M,
+            dictionary
+        )
     else:
-        board = cv2.aruco.CharucoBoard_create(board_size[0], board_size[1], 0.03, 0.022, dictionary)
+        board = cv2.aruco.CharucoBoard_create(
+            board_size[0],
+            board_size[1],
+            DEFAULT_CHARUCO_SQUARE_SIZE_M,
+            DEFAULT_CHARUCO_MARKER_SIZE_M,
+            dictionary
+        )
 
     if hasattr(board, "generateImage"):
         img = board.generateImage(image_size)

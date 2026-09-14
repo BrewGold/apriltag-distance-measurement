@@ -9,6 +9,11 @@ import argparse
 from pathlib import Path
 from camera_calibration import CameraCalibration
 from apriltag_detector import AprilTagMeasurement, MeasurementSession
+from system_config import (
+    DEFAULT_CHARUCO_BOARD_SIZE,
+    DEFAULT_CHARUCO_MARKER_SIZE_M,
+    DEFAULT_CHARUCO_SQUARE_SIZE_M,
+)
 import json
 
 class MeasurementSystem:
@@ -43,15 +48,19 @@ class MeasurementSystem:
         print("="*60)
         
         calibrator = CameraCalibration(
-            board_size=(9, 6),
-            square_size=0.03,
-            marker_size=0.022
+            board_size=DEFAULT_CHARUCO_BOARD_SIZE,
+            square_size=DEFAULT_CHARUCO_SQUARE_SIZE_M,
+            marker_size=DEFAULT_CHARUCO_MARKER_SIZE_M
         )
         
         print("\nPaso 1: Captura de imágenes de calibración")
         print("-" * 40)
-        print("Necesitas un tablero Charuco (9x6)")
-        print("Configuración de referencia del script: cuadrado 30mm, marcador 22mm")
+        print(f"Necesitas un tablero Charuco ({DEFAULT_CHARUCO_BOARD_SIZE[0]}x{DEFAULT_CHARUCO_BOARD_SIZE[1]})")
+        print(
+            "Configuración de referencia del script: "
+            f"cuadrado {DEFAULT_CHARUCO_SQUARE_SIZE_M * 1000:.0f}mm, "
+            f"marcador {DEFAULT_CHARUCO_MARKER_SIZE_M * 1000:.0f}mm"
+        )
         input("Presiona ENTER para comenzar la captura...")
         
         calibrator.capture_calibration_images(camera_id=0, num_images=20)

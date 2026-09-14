@@ -7,11 +7,21 @@ import cv2
 import numpy as np
 import json
 from pathlib import Path
+from system_config import (
+    DEFAULT_CHARUCO_BOARD_SIZE,
+    DEFAULT_CHARUCO_MARKER_SIZE_M,
+    DEFAULT_CHARUCO_SQUARE_SIZE_M,
+)
 
 class CameraCalibration:
     """Calibración de cámara con tablero Charuco."""
     
-    def __init__(self, board_size=(9, 6), square_size=0.03, marker_size=0.022):
+    def __init__(
+        self,
+        board_size=DEFAULT_CHARUCO_BOARD_SIZE,
+        square_size=DEFAULT_CHARUCO_SQUARE_SIZE_M,
+        marker_size=DEFAULT_CHARUCO_MARKER_SIZE_M
+    ):
         """
         Args:
             board_size: (width, height) número de cuadros del tablero Charuco
@@ -226,9 +236,9 @@ if __name__ == "__main__":
     
     # Crear calibrador
     calibrator = CameraCalibration(
-        board_size=(9, 6),
-        square_size=0.03,
-        marker_size=0.022
+        board_size=DEFAULT_CHARUCO_BOARD_SIZE,
+        square_size=DEFAULT_CHARUCO_SQUARE_SIZE_M,
+        marker_size=DEFAULT_CHARUCO_MARKER_SIZE_M
     )
     
     # Capturar imágenes
