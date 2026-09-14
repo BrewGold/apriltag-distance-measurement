@@ -171,8 +171,12 @@ class CameraCalibration:
             return False
         
         print(f"Calibrando con {len(self.charuco_corners)} imágenes Charuco...")
-        
-        ret, mtx, dist, rvecs, tvecs = self._calibrate_charuco(image_shape)
+
+        try:
+            ret, mtx, dist, rvecs, tvecs = self._calibrate_charuco(image_shape)
+        except cv2.error as error:
+            print(f"Error en la calibración Charuco: {error}")
+            return False
         
         if mtx is not None and dist is not None:
             self.calibration_data = {
