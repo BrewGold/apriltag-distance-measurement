@@ -1,6 +1,6 @@
 """
-Detector de AprilTags y cálculo de distancias
-Especializado para mediciones de precisión (3mm)
+Detector de AprilTag y cálculo de pose/distancia de referencia.
+Este módulo se usa como bloque base dentro del prototipo integrado.
 """
 
 import cv2
@@ -12,16 +12,15 @@ from pathlib import Path
 
 class AprilTagMeasurement:
     """
-    Sistema de medición de distancias basado en AprilTags
-    Rango: 50cm - 2m, Precisión: 3mm
+    Sistema de medición basado en AprilTag para referencia geométrica.
     """
     
-    def __init__(self, camera_matrix, distortion_coefficients, tag_size=0.1):
+    def __init__(self, camera_matrix, distortion_coefficients, tag_size=0.15):
         """
         Args:
             camera_matrix: Matriz intrínseca de calibración (3x3)
             distortion_coefficients: Coeficientes de distorsión
-            tag_size: Tamaño físico del AprilTag en metros (default 10cm)
+            tag_size: Tamaño físico del AprilTag en metros (default 15cm)
         """
         self.camera_matrix = camera_matrix
         self.distortion_coefficients = distortion_coefficients
@@ -253,7 +252,7 @@ class AprilTagMeasurement:
 class MeasurementSession:
     """Gestiona una sesión completa de mediciones"""
     
-    def __init__(self, camera_matrix, distortion_coefficients, tag_size=0.1):
+    def __init__(self, camera_matrix, distortion_coefficients, tag_size=0.15):
         self.detector = AprilTagMeasurement(camera_matrix, distortion_coefficients, tag_size)
         self.all_measurements = []
         self.scene_analysis = []
@@ -307,5 +306,5 @@ class MeasurementSession:
 
 
 if __name__ == "__main__":
-    print("AprilTag Distance Measurement System")
-    print("Precisión: 3mm | Rango: 50cm - 2m")
+    print("AprilTag Reference Measurement Module")
+    print("Configuración por defecto: tag36h11 150 x 150 mm")

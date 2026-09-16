@@ -1,183 +1,114 @@
-# Sistema de Medición de Distancias con AprilTags
+# Prototipo portátil para medición de hincas y validación de despeje
 
-Sistema completo para medir distancias entre una cámara Raspberry Pi y AprilTags con precisión de **3mm** en un rango de **50cm a 2 metros**.
+Este repositorio documenta y soporta el prototipo integrado para seguidores solares que debe:
 
-## 📋 Características
+- medir la altura real de la hinca,
+- generar un modelo local del terreno alrededor de la hinca,
+- calcular el despeje mínimo módulo-suelo,
+- decidir automáticamente **✅ APTO** o **❌ NO APTO** con despeje mínimo configurable (**300 mm** o **400 mm**).
 
-- ✅ Detección de AprilTags en tiempo real
-- ✅ Cálculo de distancias con precisión de 3mm
-- ✅ Calibración automática de cámara
-- ✅ Análisis de escena (brillo, contraste, posición)
-- ✅ Guardado de mediciones en JSON
-- ✅ Generación de reportes completos
-- ✅ Interfaz CLI intuitiva
-- ✅ Soporte para Raspberry Pi
+## Arquitectura final validada
 
-## 🛠️ Requisitos
+### Procesador principal
+- **Arduino Uno Q**
+- Responsable de control de cámaras, IMU, RTK3B Compass, servo PWM, procesamiento simplificado y decisión PASS/NO PASS.
 
-### Hardware
-- **Cámara**: Raspberry Pi Camera V2 / CSI Camera / USB Webcam
-- **Plataforma**: Raspberry Pi 4B o superior (o cualquier Linux/Windows/Mac)
-- **RAM mínima**: 1GB
-- **Tablero de ajedrez**: 9x6 esquinas con cuadrados de 25mm
+### Cámaras estéreo
+- **2 × Arducam IMX298**
+- 16 MP, **4656 × 3496**
+- HFOV aproximado: **105°**
+- Baseline estéreo: **350 mm**
 
-### Software
-- Python 3.7+
-- OpenCV
-- NumPy
-- Pupil AprilTags
+### Referencia geométrica
+- Angular magnético desmontable (aluminio + imanes + **AprilTag 36h11**)
+- Tamaño de tag: **150 × 150 mm**
+- Uso temporal en base de cada hinca para:
+  - referencia absoluta,
+  - origen de coordenadas,
+  - corrección geométrica,
+  - validación angular.
 
-## 📦 Instalación
+### Sensores auxiliares
+- **IMU**: roll y pitch reales del equipo.
+- **RTK3B Compass**: pitch, heading, referencia absoluta y corrección de vertical real.
+- **VL53L1X / ToF (opcional)**: solo verificación puntual auxiliar de distancia/altura, **no** parte de la arquitectura principal.
 
-### 1. Clonar el repositorio
+### Base giratoria
+- **ServoCity Servo Driven Base Pan Kit** por PWM RC desde Uno Q.
+- La base no define ángulos precisos; los ángulos reales se estiman con AprilTag + IMU + RTK3B.
 
-```bash
-git clone https://github.com/BrewGold/apriltag-distance-measurement.git
-cd apriltag-distance-measurement
-```
+## Flujo de captura y procesamiento
 
-### 2. Instalar dependencias
+### Captura
+- Tres posiciones: **-15°**, **0°**, **+15°**
+- En cada posición: 1 par estéreo
+- Total: **3 pares / 6 fotos**
 
-```bash
-pip install -r requirements.txt
-```
+### Resolución
+- Captura nativa: **4656 × 3496**
+- Procesamiento estéreo inicial: **50%** (**2328 × 1748**) para reducir carga
 
-### 3. Verificar instalación
+### Modelo de terreno
+- No se almacena nube de puntos completa
+- Conversión directa a malla topográfica de **5 cm × 5 cm**
+- Cada celda guarda: **Zmin, Zmax, Zmean, confidence**
 
-```bash
-python main.py --mode info
-```
+### Sistema de coordenadas
+- Origen: base de hinca (AprilTag)
+- Ejes:
+  - **X** longitudinal seguidor
+  - **Y** transversal
+  - **Z** altura
 
-## 🚀 Uso Rápido
+### Fusión entre hincas
+- Se genera un tile por hinca (A, B, C, ...)
+- Alineación mediante AprilTag + RTK + geometría conocida
+- Zonas negras pequeñas entre hincas: medida real + interpolación con nivel de confianza
 
-### Paso 1: Calibración de Cámara (PRIMERA VEZ)
+## Salida esperada del sistema
 
-La calibración es **crítica** para obtener precisión de 3mm. Necesitas un tablero de ajedrez impreso (9x6 esquinas, cuadrados de 25mm).
+- Altura de hinca, por ejemplo: `1842 mm`
+- Despeje mínimo, por ejemplo: `347 mm`
+- Punto crítico, por ejemplo: `X = 5.42 m`, `Y = -0.67 m`
+- Resultado final: `✅ APTO` o `❌ NO APTO`
+
+## Precisión objetivo y ventana operativa
+
+- Altura de hinca:
+  - objetivo: **±5 mm**
+  - esperado en buenas condiciones: **±3 a ±5 mm**
+  - esperado en condiciones difíciles: **±5 a ±10 mm**
+- Modelo de terreno en campo: **±5 a ±10 mm**
+- Tiempo operativo por hinca: **15 a 20 s**
+
+## Estado del prototipo
+
+Componentes validados y alineados en este repositorio:
+
+- Uno Q
+- 2 cámaras IMX298
+- Baseline 350 mm
+- AprilTag 150×150 mm en referencia magnética
+- IMU integrada
+- RTK3B Compass
+- Base giratoria PWM
+- Capturas a -15°, 0°, +15°
+- Malla topográfica 5×5 cm
+- Fusión entre hincas
+- Resultado PASS / NO PASS
+
+## Alcance actual del código
+
+Los scripts Python en este repositorio son módulos de apoyo para calibración de cámara y medición visual con AprilTag, usados como base de referencia geométrica dentro del prototipo integrado.
+
+### Ejemplos
 
 ```bash
 python main.py --mode calibrate
-```
-
-**Instrucciones:**
-1. Imprime el tablero de ajedrez
-2. Pega sobre una superficie plana rígida
-3. Ejecuta el comando
-4. Captura 20 imágenes del tablero en diferentes ángulos
-5. El sistema generará `camera_calibration.json`
-
-### Paso 2: Mediciones en Tiempo Real
-
-```bash
-python main.py --mode measure
-```
-
-**Controles:**
-- `ESPACIO`: Guardar frame actual con mediciones
-- `R`: Resetear sesión de medición
-- `ESC`: Salir
-
-### Paso 3: Ver Información de Calibración
-
-```bash
+python main.py --mode measure --tag-size 0.15
 python main.py --mode info
 ```
 
-## 📊 Archivos de Salida
+## Nota de arquitectura
 
-### Mediciones (`measurements/`)
-```json
-{
-  "timestamp": "2026-09-07T10:30:45.123456",
-  "frame_number": 150,
-  "measurements": [
-    {
-      "tag_id": 0,
-      "distance_m": 0.75,
-      "distance_cm": 75.23,
-      "distance_mm": 752.3,
-      "angles_deg": [2.1, 1.5, -0.3],
-      "center": [320, 240],
-      "pose_error": 0.002
-    }
-  ]
-}
-```
-
-## 🔬 Parámetros de Precisión
-
-| Parámetro | Valor |
-|-----------|-------|
-| Precisión requerida | ±3mm |
-| Rango de medición | 50cm - 2m |
-| Resolución cámara | 640x480 |
-| FPS | 30 |
-
-## 🎯 Opciones Avanzadas
-
-### Cambiar tamaño del AprilTag
-
-```bash
-python main.py --mode measure --tag-size 0.15
-```
-
-### Usar cámara alternativa
-
-```bash
-python main.py --mode measure --camera 1
-```
-
-### Guardar video
-
-```bash
-python main.py --mode measure --save-video
-```
-
-## 🔧 API de Python
-
-```python
-from apriltag_detector import AprilTagMeasurement
-import json
-import numpy as np
-
-# Cargar calibración
-with open("camera_calibration.json") as f:
-    cal = json.load(f)
-
-camera_matrix = np.array(cal['camera_matrix'])
-distortion = np.array(cal['distortion_coefficients'])
-
-# Crear detector
-detector = AprilTagMeasurement(camera_matrix, distortion, tag_size=0.1)
-
-# Detectar
-tags = detector.detect_tags(frame)
-for tag in tags:
-    measurement = detector.calculate_distance(tag)
-    print(f"Distance: {measurement['distance_cm']:.2f}cm")
-```
-
-## 📖 Estructura del Proyecto
-
-```
-apriltag-distance-measurement/
-├── main.py                    # Script principal
-├── camera_calibration.py      # Módulo de calibración
-├── apriltag_detector.py       # Módulo de detección
-├── requirements.txt           # Dependencias
-├── camera_calibration.json    # Calibración (generado)
-├── measurements/              # Mediciones (creado)
-└── README.md                  # Documentación
-```
-
-## 📝 Licencia
-
-MIT License
-
-## 🤝 Contribuciones
-
-Las contribuciones son bienvenidas. Por favor abre un Issue o Pull Request.
-
----
-
-**Versión**: 1.0.0  
-**Última actualización**: 2026-09-07
+**LiDAR no forma parte del diseño principal de este prototipo.**

@@ -1,6 +1,6 @@
 """
-Calibración de cámara para mediciones precisas (3mm)
-Generador de matriz intrínseca y distorsión
+Calibración de cámara para mediciones con AprilTag.
+Genera matriz intrínseca y coeficientes de distorsión.
 """
 
 import cv2

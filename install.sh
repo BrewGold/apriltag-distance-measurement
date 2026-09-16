@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script de instalación para Raspberry Pi
+# Script de instalación del entorno de medición AprilTag
 
 echo "================================================"
 echo "Instalación - Sistema de Medición AprilTag"
