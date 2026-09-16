@@ -109,6 +109,14 @@ python main.py --mode measure --tag-size 0.15
 python main.py --mode info
 ```
 
+### Ejemplo API (tag de 150 mm)
+
+```python
+from apriltag_detector import AprilTagMeasurement
+
+detector = AprilTagMeasurement(camera_matrix, distortion_coefficients, tag_size=0.15)
+```
+
 ## Nota de arquitectura
 
 **LiDAR no forma parte del diseño principal de este prototipo.**
