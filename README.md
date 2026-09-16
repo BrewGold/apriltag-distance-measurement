@@ -7,7 +7,16 @@ Este repositorio documenta y soporta el prototipo integrado para seguidores sola
 - calcular el despeje mínimo módulo-suelo,
 - decidir automáticamente **✅ APTO** o **❌ NO APTO** con despeje mínimo configurable (**300 mm** o **400 mm**).
 
-## Arquitectura final validada
+## Alcance de este repositorio (implementación actual)
+
+Este repositorio **no implementa todavía el sistema integrado completo** en Uno Q.  
+El código actual en Python aporta módulos de soporte para:
+
+- calibración de cámara,
+- detección de AprilTag 36h11,
+- estimación de pose/distancia del tag de referencia.
+
+## Arquitectura final validada del prototipo (nivel sistema)
 
 ### Procesador principal
 - **Arduino Uno Q**
@@ -18,6 +27,7 @@ Este repositorio documenta y soporta el prototipo integrado para seguidores sola
 - 16 MP, **4656 × 3496**
 - HFOV aproximado: **105°**
 - Baseline estéreo: **350 mm**
+- Esta configuración corresponde al prototipo integrado objetivo; no al flujo mono-cámara actual de `main.py`.
 
 ### Referencia geométrica
 - Angular magnético desmontable (aluminio + imanes + **AprilTag 36h11**)
@@ -37,7 +47,7 @@ Este repositorio documenta y soporta el prototipo integrado para seguidores sola
 - **ServoCity Servo Driven Base Pan Kit** por PWM RC desde Uno Q.
 - La base no define ángulos precisos; los ángulos reales se estiman con AprilTag + IMU + RTK3B.
 
-## Flujo de captura y procesamiento
+## Flujo de captura y procesamiento objetivo (prototipo integrado)
 
 ### Captura
 - Tres posiciones: **-15°**, **0°**, **+15°**
@@ -65,7 +75,7 @@ Este repositorio documenta y soporta el prototipo integrado para seguidores sola
 - Alineación mediante AprilTag + RTK + geometría conocida
 - Zonas negras pequeñas entre hincas: medida real + interpolación con nivel de confianza
 
-## Salida esperada del sistema
+## Salida esperada del sistema integrado
 
 - Altura de hinca, por ejemplo: `1842 mm`
 - Despeje mínimo, por ejemplo: `347 mm`
@@ -81,7 +91,7 @@ Este repositorio documenta y soporta el prototipo integrado para seguidores sola
 - Modelo de terreno en campo: **±5 a ±10 mm**
 - Tiempo operativo por hinca: **15 a 20 s**
 
-## Estado del prototipo
+## Estado del prototipo (arquitectura validada)
 
 Componentes validados y alineados en este repositorio:
 
@@ -97,11 +107,7 @@ Componentes validados y alineados en este repositorio:
 - Fusión entre hincas
 - Resultado APTO / NO APTO
 
-## Alcance actual del código
-
-Los scripts Python en este repositorio son módulos de apoyo para calibración de cámara y medición visual con AprilTag, usados como base de referencia geométrica dentro del prototipo integrado.
-
-### Ejemplos
+## Uso disponible hoy en este repositorio (scripts Python)
 
 ```bash
 python main.py --mode calibrate
@@ -116,6 +122,11 @@ from apriltag_detector import AprilTagMeasurement
 
 detector = AprilTagMeasurement(camera_matrix, distortion_coefficients, tag_size=0.15)
 ```
+
+### Salida actual de los scripts Python
+
+La salida actual corresponde a mediciones visuales de AprilTag (pose/distancia, análisis de escena y reportes JSON).  
+El cálculo final de altura de hinca + despeje mínimo + decisión APTO/NO APTO pertenece al sistema integrado objetivo.
 
 ## Nota de arquitectura
 
