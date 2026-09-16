@@ -11,7 +11,7 @@ Este repositorio documenta y soporta el prototipo integrado para seguidores sola
 
 ### Procesador principal
 - **Arduino Uno Q**
-- Responsable de control de cámaras, IMU, RTK3B Compass, servo PWM, procesamiento simplificado y decisión PASS/NO PASS.
+- Responsable de control de cámaras, IMU, RTK3B Compass, servo PWM, procesamiento simplificado y decisión APTO/NO APTO.
 
 ### Cámaras estéreo
 - **2 × Arducam IMX298**
