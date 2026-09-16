@@ -1,6 +1,6 @@
 """
-Script principal para captura en tiempo real y mediciones con Raspberry Pi
-Menú interactivo para calibración y mediciones
+Script principal para calibración y mediciones con AprilTag.
+Utilizado como bloque base del prototipo integrado de hinca y despeje.
 """
 
 import cv2
@@ -12,9 +12,9 @@ from apriltag_detector import AprilTagMeasurement, MeasurementSession
 import json
 
 class MeasurementSystem:
-    """Sistema completo de medición con AprilTags"""
+    """Sistema base de medición con AprilTags"""
     
-    def __init__(self, calibration_file="camera_calibration.json", tag_size=0.1):
+    def __init__(self, calibration_file="camera_calibration.json", tag_size=0.15):
         self.calibration_file = calibration_file
         self.tag_size = tag_size
         self.camera_matrix = None
@@ -140,7 +140,7 @@ class MeasurementSystem:
                            (10, display_frame.shape[0] - 50),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
                 
-                cv2.imshow("AprilTag Measurement System", display_frame)
+                cv2.imshow("AprilTag Reference Measurement", display_frame)
                 
                 # Grabar video si está habilitado
                 if video_writer:
@@ -203,7 +203,7 @@ class MeasurementSystem:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sistema de Medición con AprilTags para Raspberry Pi"
+        description="Bloque de medición AprilTag para el prototipo de hinca y despeje"
     )
     parser.add_argument(
         "--mode",
@@ -219,8 +219,8 @@ def main():
     parser.add_argument(
         "--tag-size",
         type=float,
-        default=0.1,
-        help="Tamaño del AprilTag en metros (default: 0.1m = 10cm)"
+        default=0.15,
+        help="Tamaño del AprilTag en metros (default: 0.15m = 15cm)"
     )
     parser.add_argument(
         "--camera",
@@ -237,8 +237,8 @@ def main():
     args = parser.parse_args()
     
     print("\n" + "="*60)
-    print("SISTEMA DE MEDICIÓN CON APRILTAGS")
-    print("Precisión: 3mm | Rango: 50cm - 2m")
+    print("BLOQUE DE MEDICIÓN APRILTAG")
+    print("Referencia por defecto: tag36h11 de 150 x 150 mm")
     print("="*60 + "\n")
     
     system = MeasurementSystem(
