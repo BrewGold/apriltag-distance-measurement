@@ -95,7 +95,7 @@ Componentes validados y alineados en este repositorio:
 - Capturas a -15°, 0°, +15°
 - Malla topográfica 5×5 cm
 - Fusión entre hincas
-- Resultado PASS / NO PASS
+- Resultado APTO / NO APTO
 
 ## Alcance actual del código
 
